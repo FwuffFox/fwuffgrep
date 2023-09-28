@@ -1,8 +1,8 @@
 use crate::config::Config;
+
 use std::error::Error;
 use std::fs::{self, File};
-use std::io::Write;
-use std::path::Path;
+use std::io::{stdin, Read, Write};
 
 pub mod config;
 
@@ -10,11 +10,22 @@ pub mod config;
 mod tests;
 
 pub fn run(config: &Config) -> Result<(), Box<dyn Error>> {
-    let path = Path::new(&config.file_path);
-    let contents = fs::read_to_string(path)?;
+    let contents = manage_input(config)?;
     let result = get_result(config, &contents)?;
     manage_output(config, &result)?;
     Ok(())
+}
+
+fn manage_input(config: &Config) -> Result<String, Box<dyn Error>> {
+    let res = match config.file_path.clone() {
+        None => {
+            let mut buf = String::new();
+            stdin().read_to_string(&mut buf)?;
+            buf
+        }
+        Some(path) => fs::read_to_string(path)?,
+    };
+    Ok(res)
 }
 
 pub fn manage_output(config: &Config, lines: &[&str]) -> Result<(), Box<dyn Error>> {

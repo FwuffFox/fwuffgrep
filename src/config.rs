@@ -8,8 +8,8 @@ pub struct Config {
     /// Query to search by
     pub query: String,
 
-    /// Path to a file
-    pub file_path: PathBuf,
+    /// Path to a file. If none, read from stdin
+    pub file_path: Option<PathBuf>,
 
     /// Ignore case
     #[arg(short, long, action)]
