@@ -15,6 +15,10 @@ pub struct Config {
     #[arg(short, long, action)]
     pub case_insensitive: bool,
 
+    /// Use regex search
+    #[arg(short, long, action)]
+    pub regex: bool,
+
     /// Path to output file
     #[arg(short, long)]
     pub output_path: Option<PathBuf>,

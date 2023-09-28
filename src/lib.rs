@@ -1,3 +1,5 @@
+use regex::Regex;
+
 use crate::config::Config;
 
 use std::error::Error;
@@ -45,13 +47,20 @@ pub fn manage_output(config: &Config, lines: &[&str]) -> Result<(), Box<dyn Erro
 }
 
 pub fn get_result<'a>(config: &Config, text: &'a str) -> Result<Vec<&'a str>, Box<dyn Error>> {
-    let result = if config.case_insensitive {
+    let result = if config.regex {
+        search_regex(&config.query, text)?
+    } else if config.case_insensitive {
         search(&config.query, text)
     } else {
         search_insensitive(&config.query, text)
     };
 
     Ok(result)
+}
+
+pub fn search_regex<'a>(pattern: &str, text: &'a str) -> Result<Vec<&'a str>, Box<dyn Error>> {
+    let regex = Regex::new(pattern)?;
+    Ok(text.lines().filter(|line| regex.is_match(line)).collect())
 }
 
 pub fn search<'a>(query: &str, text: &'a str) -> Vec<&'a str> {

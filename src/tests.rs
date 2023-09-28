@@ -10,6 +10,8 @@ to impress him, takes on his multi-armed form and says,
 'Now I am become Death, the destroyer of worlds.'
 I suppose we all thought that, one way or another.";
 
+// TODO: Regex search tests!!!
+
 #[test]
 fn single_search() {
     let query = "silent";
