@@ -1,37 +1,22 @@
-use regex::Regex;
-
-use crate::config::Config;
-
-use std::error::Error;
-use std::fmt::Debug;
-use std::fs::{self, File};
-use std::io::{self, stdin, BufRead, BufReader, Lines, Read, Write};
-use std::iter::Enumerate;
-use std::path::Path;
-
 pub mod config;
+pub mod input;
 
-#[cfg(test)]
-mod tests;
+use config::Config;
+use input::{manage_input, InputLines};
 
-type InputLines = Lines<BufReader<Box<dyn Read>>>;
+use regex::Regex;
+use std::{
+    error::Error,
+    fs::File,
+    io::Write,
+};
+
 
 pub fn run(config: &Config) -> Result<(), Box<dyn Error>> {
     let contents: InputLines = manage_input(config)?;
-    let result = get_result(config, contents)?;
+    let result: Vec<(usize, String)> = get_result(config, contents)?;
     manage_output(config, &result)?;
     Ok(())
-}
-
-fn manage_input(config: &Config) -> Result<InputLines, Box<dyn Error>> {
-    let res: Lines<BufReader<Box<dyn Read>>> = match config.file_path.clone() {
-        None => {
-            let reader: Box<dyn Read> = Box::new(stdin());
-            BufReader::new(reader).lines()
-        }
-        Some(path) => read_lines(path)?,
-    };
-    Ok(res)
 }
 
 pub fn manage_output(config: &Config, lines: &[(usize, String)]) -> Result<(), Box<dyn Error>> {
@@ -44,7 +29,7 @@ pub fn manage_output(config: &Config, lines: &[(usize, String)]) -> Result<(), B
         Some(path) => {
             let mut file = File::create(path)?;
             for line in lines.iter() {
-                file.write(format!("{}: {}", line.0, line.1).as_bytes());
+                file.write(format!("{}: {}\n", line.0, line.1).as_bytes())?;
             }
         }
     }
@@ -58,17 +43,20 @@ pub fn get_result<'a>(
     if config.regex {
         search_regex(&config.query, lines)
     } else {
-        search(&config.query, lines, config.case_insensitive)
+        search(&config.query, lines, config.ignore_case)
     }
 }
 
-pub fn search_regex<'a>(
+pub fn search_regex(
     pattern: &str,
     lines: InputLines,
 ) -> Result<Vec<(usize, String)>, Box<dyn Error>> {
-    let regex = Regex::new(pattern)?;
+    let regex: Regex = Regex::new(pattern)?;
     let lines = lines.map(|x| x.unwrap()).enumerate();
-    Ok(lines.filter(|line| regex.is_match(&line.1)).collect())
+    Ok(lines
+        .filter(|line| regex.is_match(&line.1))
+        .map(|(line_number, line)| (line_number + 1, line))
+        .collect())
 }
 
 pub fn search(
@@ -76,20 +64,26 @@ pub fn search(
     lines: InputLines,
     ignore_case: bool,
 ) -> Result<Vec<(usize, String)>, Box<dyn Error>> {
-    let mut query: String = query.to_owned();
-    let lines = lines.map(|x| x.unwrap()).enumerate();
-    if ignore_case {
-        todo!();
-    }
-    Ok(lines.filter(|x| x.1.contains(&query)).collect())
-}
+    let mut results: Vec<(usize, String)> = Vec::new();
+    let lowercase_query: String = if ignore_case {
+        query.to_lowercase()
+    } else {
+        query.to_string()
+    };
 
-// The output is wrapped in a Result to allow matching on errors
-// Returns an Iterator to the Reader of the lines of the file.
-fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<Box<dyn Read>>>>
-where
-    P: AsRef<Path>,
-{
-    let file: Box<dyn Read> = Box::new(File::open(filename)?);
-    Ok(io::BufReader::new(file).lines())
+    for (line_number, line_result) in lines.enumerate() {
+        let line: String = line_result?;
+
+        let line_to_compare: String = if ignore_case {
+            line.to_lowercase()
+        } else {
+            line.clone()
+        };
+
+        if line_to_compare.contains(&lowercase_query) {
+            results.push((line_number + 1, line)); // Adding 1 to line number to make it 1-indexed
+        }
+    }
+
+    Ok(results)
 }
