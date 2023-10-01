@@ -3,73 +3,93 @@ use regex::Regex;
 use crate::config::Config;
 
 use std::error::Error;
+use std::fmt::Debug;
 use std::fs::{self, File};
-use std::io::{stdin, Read, Write};
+use std::io::{self, stdin, BufRead, BufReader, Lines, Read, Write};
+use std::iter::Enumerate;
+use std::path::Path;
 
 pub mod config;
 
 #[cfg(test)]
 mod tests;
 
+type InputLines = Lines<BufReader<Box<dyn Read>>>;
+
 pub fn run(config: &Config) -> Result<(), Box<dyn Error>> {
-    let contents = manage_input(config)?;
-    let result = get_result(config, &contents)?;
+    let contents: InputLines = manage_input(config)?;
+    let result = get_result(config, contents)?;
     manage_output(config, &result)?;
     Ok(())
 }
 
-fn manage_input(config: &Config) -> Result<String, Box<dyn Error>> {
-    let res = match config.file_path.clone() {
+fn manage_input(config: &Config) -> Result<InputLines, Box<dyn Error>> {
+    let res: Lines<BufReader<Box<dyn Read>>> = match config.file_path.clone() {
         None => {
-            let mut buf = String::new();
-            stdin().read_to_string(&mut buf)?;
-            buf
+            let reader: Box<dyn Read> = Box::new(stdin());
+            BufReader::new(reader).lines()
         }
-        Some(path) => fs::read_to_string(path)?,
+        Some(path) => read_lines(path)?,
     };
     Ok(res)
 }
 
-pub fn manage_output(config: &Config, lines: &[&str]) -> Result<(), Box<dyn Error>> {
+pub fn manage_output(config: &Config, lines: &[(usize, String)]) -> Result<(), Box<dyn Error>> {
     match config.output_path.clone() {
         None => {
             for line in lines.iter() {
-                println!("{line}");
+                println!("{}: {}", line.0, line.1);
             }
         }
         Some(path) => {
-            let combined_data = lines.join("\n");
             let mut file = File::create(path)?;
-            file.write_all(combined_data.as_bytes())?;
+            for line in lines.iter() {
+                file.write(format!("{}: {}", line.0, line.1).as_bytes());
+            }
         }
     }
     Ok(())
 }
 
-pub fn get_result<'a>(config: &Config, text: &'a str) -> Result<Vec<&'a str>, Box<dyn Error>> {
-    let result = if config.regex {
-        search_regex(&config.query, text)?
-    } else if config.case_insensitive {
-        search(&config.query, text)
+pub fn get_result<'a>(
+    config: &Config,
+    lines: InputLines,
+) -> Result<Vec<(usize, String)>, Box<dyn Error>> {
+    if config.regex {
+        search_regex(&config.query, lines)
     } else {
-        search_insensitive(&config.query, text)
-    };
-
-    Ok(result)
+        search(&config.query, lines, config.case_insensitive)
+    }
 }
 
-pub fn search_regex<'a>(pattern: &str, text: &'a str) -> Result<Vec<&'a str>, Box<dyn Error>> {
+pub fn search_regex<'a>(
+    pattern: &str,
+    lines: InputLines,
+) -> Result<Vec<(usize, String)>, Box<dyn Error>> {
     let regex = Regex::new(pattern)?;
-    Ok(text.lines().filter(|line| regex.is_match(line)).collect())
+    let lines = lines.map(|x| x.unwrap()).enumerate();
+    Ok(lines.filter(|line| regex.is_match(&line.1)).collect())
 }
 
-pub fn search<'a>(query: &str, text: &'a str) -> Vec<&'a str> {
-    text.lines().filter(|line| line.contains(query)).collect()
+pub fn search(
+    query: &str,
+    lines: InputLines,
+    ignore_case: bool,
+) -> Result<Vec<(usize, String)>, Box<dyn Error>> {
+    let mut query: String = query.to_owned();
+    let lines = lines.map(|x| x.unwrap()).enumerate();
+    if ignore_case {
+        todo!();
+    }
+    Ok(lines.filter(|x| x.1.contains(&query)).collect())
 }
 
-pub fn search_insensitive<'a>(query: &str, text: &'a str) -> Vec<&'a str> {
-    let lowercase_query = query.to_lowercase();
-    text.lines()
-        .filter(|line| line.to_lowercase().contains(&lowercase_query))
-        .collect()
+// The output is wrapped in a Result to allow matching on errors
+// Returns an Iterator to the Reader of the lines of the file.
+fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<Box<dyn Read>>>>
+where
+    P: AsRef<Path>,
+{
+    let file: Box<dyn Read> = Box::new(File::open(filename)?);
+    Ok(io::BufReader::new(file).lines())
 }
