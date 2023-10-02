@@ -15,8 +15,6 @@ pub fn run(config: &Config) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-
-
 pub fn get_result<'a>(
     config: &Config,
     lines: InputLines,
@@ -40,31 +38,27 @@ pub fn search_regex(
         .collect())
 }
 
+fn matches_query(line: &str, query: &str, ignore_case: bool) -> bool {
+    let line_to_compare = if ignore_case {
+        line.to_lowercase()
+    } else {
+        line.to_string()
+    };
+    line_to_compare.contains(query)
+}
+
 pub fn search(
     query: &str,
     lines: InputLines,
     ignore_case: bool,
 ) -> Result<Vec<(usize, String)>, Box<dyn Error>> {
-    let mut results: Vec<(usize, String)> = Vec::new();
-    let lowercase_query: String = if ignore_case {
-        query.to_lowercase()
-    } else {
-        query.to_string()
-    };
-
+    let mut results = Vec::new();
     for (line_number, line_result) in lines.enumerate() {
-        let line: String = line_result?;
-
-        let line_to_compare: String = if ignore_case {
-            line.to_lowercase()
-        } else {
-            line.clone()
-        };
-
-        if line_to_compare.contains(&lowercase_query) {
-            results.push((line_number + 1, line)); // Adding 1 to line number to make it 1-indexed
+        let line = line_result?;
+        if matches_query(&line, query, ignore_case) {
+            results.push((line_number + 1, line));
         }
     }
-
     Ok(results)
 }
+

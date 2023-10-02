@@ -8,14 +8,14 @@ pub struct Config {
     pub query: String,
 
     /// Path to a file to read from. If none, input is read from stdin
-    pub file_path: Option<PathBuf>,
+    pub path: Option<PathBuf>,
 
     /// Ignore case. Doesn't work if using Regex search
     #[arg(short, long, action)]
     pub ignore_case: bool,
 
     /// Use regex search. Overrides an ignore case flag
-    #[arg(short, long, action)]
+    #[arg(long, action)]
     pub regex: bool,
 
     /// Path to output file. If none, text is written to a stdout
