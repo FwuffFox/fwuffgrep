@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod search_tests {
-    use fwuffgrep::{*, input::input_lines_from_string};
+    use fwuffgrep::{io::input::input_lines_from_string, search};
 
     #[test]
     fn test_search_case_sensitive() {

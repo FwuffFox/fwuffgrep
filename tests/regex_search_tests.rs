@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod regex_search_tests {
-    use fwuffgrep::{*, input::input_lines_from_string};
+    use fwuffgrep::{io::input::input_lines_from_string, search_regex};
 
     #[test]
     fn test_search_regex_matching_lines() {
