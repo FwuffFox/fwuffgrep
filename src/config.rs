@@ -21,4 +21,8 @@ pub struct Config {
     /// Path to output file. If none, text is written to a stdout
     #[arg(short , long)]
     pub output_path: Option<PathBuf>,
+
+    /// If passed, output lines will be numerated by their position in a file.
+    #[arg(short, long, action)]
+    pub numerate: bool,
 }

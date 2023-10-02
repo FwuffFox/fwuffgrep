@@ -1,15 +1,11 @@
 pub mod config;
-pub mod input;
+pub mod io;
 
 use config::Config;
-use input::{manage_input, InputLines};
+use io::{input::{manage_input, InputLines}, output::manage_output};
 
 use regex::Regex;
-use std::{
-    error::Error,
-    fs::File,
-    io::Write,
-};
+use std::error::Error;
 
 
 pub fn run(config: &Config) -> Result<(), Box<dyn Error>> {
@@ -19,22 +15,7 @@ pub fn run(config: &Config) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn manage_output(config: &Config, lines: &[(usize, String)]) -> Result<(), Box<dyn Error>> {
-    match config.output_path.clone() {
-        None => {
-            for line in lines.iter() {
-                println!("{}: {}", line.0, line.1);
-            }
-        }
-        Some(path) => {
-            let mut file = File::create(path)?;
-            for line in lines.iter() {
-                file.write(format!("{}: {}\n", line.0, line.1).as_bytes())?;
-            }
-        }
-    }
-    Ok(())
-}
+
 
 pub fn get_result<'a>(
     config: &Config,
