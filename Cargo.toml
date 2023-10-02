@@ -1,6 +1,8 @@
 [package]
 name = "fwuffgrep"
-version = "0.1.0"
+authors = ["Fwuff"]
+description = "Basic implementation of a grep command written in rust"
+version = "1.0.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
