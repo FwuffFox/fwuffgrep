@@ -16,12 +16,9 @@ pub fn input_lines_from_string(input: String) -> InputLines {
 }
 
 pub fn manage_input(config: &Config) -> Result<InputLines, Box<dyn Error>> {
-    let res: Lines<BufReader<Box<dyn Read>>> = match config.file_path.clone() {
-        None => {
-            let reader: Box<dyn Read> = Box::new(stdin());
-            BufReader::new(reader).lines()
-        }
-        Some(path) => read_lines(path)?,
+    let res: InputLines = match &config.path {
+        None => BufReader::new(Box::new(stdin()) as Box<dyn Read>).lines(),
+        Some(ref path) => read_lines(path)?,
     };
     Ok(res)
 }
